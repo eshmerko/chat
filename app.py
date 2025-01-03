@@ -23,9 +23,19 @@ def chat():
         if not user_message or not user_message.strip():
             return jsonify({"error": "Message cannot be empty"}), 400
 
+        # Системный промпт для задания контекста беседы
+        system_prompt = {
+            "role": "system",
+            "content": "Вы являетесь помощником, который помогает с техническими вопросами по программированию и разработке. Отвечайте четко и по существу."
+        }
+
+        # Создание запроса с системным промптом
         chat_response = client.chat.complete(
             model=MODEL,
-            messages=[{"role": "user", "content": user_message.strip()}]
+            messages=[
+                system_prompt,  # Добавление системного промпта
+                {"role": "user", "content": user_message.strip()}
+            ]
         )
         response_content = chat_response.choices[0].message.content
         print("Response from API:", response_content)  # Проверка ответа
@@ -33,6 +43,7 @@ def chat():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 

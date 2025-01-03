@@ -4,53 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
+        /* Основные стили чата и кнопки */
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            font-family: Arial, sans-serif;
             background-color: #f5f5f5;
         }
 
+        #chat-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            font-size: 24px;
+        }
+
         #chat-container {
-            width: 400px;
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
             background: #fff;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
             border-radius: 8px;
-            overflow: hidden;
-            display: flex;
+            display: none;
             flex-direction: column;
+        }
+
+        #chat-header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            font-size: 18px;
         }
 
         #messages {
             flex: 1;
             padding: 10px;
             overflow-y: auto;
-            border-bottom: 1px solid #ccc;
         }
 
         .message {
             margin-bottom: 10px;
             padding: 10px;
             border-radius: 5px;
-            line-height: 1.4;
-        }
-
-        #bot-message {
-            background: #e3f2fd;
-            align-self: flex-start;
         }
 
         .user-message {
             background: #d1ffd8;
-            align-self: flex-end;
         }
 
+        .bot-message {
+            background: #e3f2fd;
+        }
+        
+        /* Форма ввода */
         #chat-form {
             display: flex;
             padding: 10px;
@@ -64,7 +85,6 @@
             border-radius: 5px;
             margin-right: 10px;
         }
-
         #chat-form button {
             background: #007bff;
             color: #fff;
@@ -77,18 +97,118 @@
         #chat-form button:hover {
             background: #0056b3;
         }
+
+        /* Анимация ожидания */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin: 0 3px;
+            background-color: #007bff;
+            border-radius: 50%;
+            animation: blink 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+            0%, 80%, 100% {
+                opacity: 0;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Кнопка открытия чата -->
+    <button id="chat-button">💬</button>
+
+    <!-- Окно чата -->
     <div id="chat-container">
+        <div id="chat-header">Чат-бот</div>
         <div id="messages">
-            <div id="bot-message" class="message">Привет! Я ваш чат-бот.</div>
+            <div class="bot-message message">Привет! Я ваш чат-бот на базе ИИ.</div>
         </div>
         <form id="chat-form">
-            <input type="text" id="message" name="message" placeholder="Enter your message">
-            <button type="submit">Send</button>
+            <input type="text" id="message" name="message" placeholder="Введите ваше сообщение...">
+            <button type="submit">Отправить</button>
         </form>
     </div>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatButton = document.getElementById('chat-button');
+            const chatContainer = document.getElementById('chat-container');
+            const form = document.getElementById('chat-form');
+            const messageInput = document.getElementById('message');
+            const messagesDiv = document.getElementById('messages');
+
+            // Открытие/закрытие чата
+            chatButton.addEventListener('click', () => {
+                chatContainer.style.display = chatContainer.style.display === 'none' || !chatContainer.style.display ? 'flex' : 'none';
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const userMessage = messageInput.value.trim();
+                if (!userMessage) return;
+
+                appendMessage(userMessage, 'user-message');
+                messageInput.value = '';
+
+                // Показать индикатор загрузки
+                const typingIndicator = document.createElement('div');
+                typingIndicator.classList.add('typing-indicator');
+                typingIndicator.innerHTML = '<span></span><span></span><span></span>';
+                messagesDiv.appendChild(typingIndicator);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ message: userMessage }),
+                    });
+
+                    messagesDiv.removeChild(typingIndicator); // Удалить индикатор после получения ответа
+
+                    if (!response.ok) {
+                        appendMessage('Ошибка сервера. Попробуйте позже.', 'bot-message');
+                        return;
+                    }
+
+                    const data = await response.json();
+                    const botMessage = data.response || 'Нет ответа от бота.';
+                    appendMessage(botMessage, 'bot-message');
+                } catch (error) {
+                    messagesDiv.removeChild(typingIndicator); // Удалить индикатор при ошибке
+                    appendMessage('Произошла ошибка при подключении к серверу.', 'bot-message');
+                }
+            });
+
+            function appendMessage(content, className) {
+                const messageDiv = document.createElement('div');
+                messageDiv.textContent = content;
+                messageDiv.classList.add('message', className);
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Прокрутка вниз
+            }
+        });
+    </script>
 </body>
 </html>
