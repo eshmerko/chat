@@ -26,7 +26,7 @@ def chat():
         # Системный промпт для задания контекста беседы
         system_prompt = {
             "role": "system",
-            "content": "Вы являетесь помощником, который помогает с техническими вопросами по программированию и разработке. Отвечайте четко и по существу."
+            "content": "Вы являетесь помощником, который помогает с техническими вопросами по выбору сайта. Отвечайте четко и по существу."
         }
 
         # Создание запроса с системным промптом
@@ -38,13 +38,23 @@ def chat():
             ]
         )
         response_content = chat_response.choices[0].message.content
-        print("Response from API:", response_content)  # Проверка ответа
-        return jsonify({"response": response_content})
+
+        # Преобразование текста в формат Markdown или HTML (если необходимо)
+        formatted_response = format_response(response_content)
+
+        return jsonify({"response": formatted_response})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
+def format_response(text):
+    """
+    Преобразует текст в читаемый вид, заменяя Markdown-синтаксис на переносы строк.
+    """
+    # Заменяем Markdown-форматирование на перенос строки
+    text = text.replace("**", "\n").replace("*", "")  # Убираем неиспользуемый Markdown
+    # Убираем лишние пробелы, если есть
+    return text.strip()
 
 
 if __name__ == '__main__':

@@ -131,6 +131,22 @@
                 opacity: 1;
             }
         }
+        /* Стили для форматирования текста */
+        strong {
+            font-weight: bold;
+        }
+
+        em {
+            font-style: italic;
+        }
+
+        ul {
+            margin-left: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -162,6 +178,7 @@
                 chatContainer.style.display = chatContainer.style.display === 'none' || !chatContainer.style.display ? 'flex' : 'none';
             });
 
+            // Отправка сообщения
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
 
@@ -194,16 +211,36 @@
 
                     const data = await response.json();
                     const botMessage = data.response || 'Нет ответа от бота.';
-                    appendMessage(botMessage, 'bot-message');
+                    typeMessage(botMessage, 'bot-message');
                 } catch (error) {
                     messagesDiv.removeChild(typingIndicator); // Удалить индикатор при ошибке
                     appendMessage('Произошла ошибка при подключении к серверу.', 'bot-message');
                 }
             });
 
+            // Функция для добавления сообщения с эффектом набора
+            function typeMessage(content, className) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', className);
+                messagesDiv.appendChild(messageDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Прокрутка вниз
+
+                let i = 0;
+                function typingEffect() {
+                    if (i < content.length) {
+                        messageDiv.innerHTML += content.charAt(i); // Используем innerHTML для добавления HTML-разметки
+                        i++;
+                        setTimeout(typingEffect, 50); // Задержка между символами (50 мс)
+                    }
+                }
+
+                typingEffect(); // Запускаем эффект набора текста
+            }
+
+            // Функция для немедленного добавления сообщения
             function appendMessage(content, className) {
                 const messageDiv = document.createElement('div');
-                messageDiv.textContent = content;
+                messageDiv.innerHTML = content; // Используем innerHTML для отображения HTML
                 messageDiv.classList.add('message', className);
                 messagesDiv.appendChild(messageDiv);
                 messagesDiv.scrollTop = messagesDiv.scrollHeight; // Прокрутка вниз
